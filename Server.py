@@ -1,9 +1,10 @@
 import socket
 import threading
-from Client import User, Host, UserThread, HostThread
+
 import json
 import abc
 import Functions
+import DBInterface
 
 # Server Data
 HOST = None               # Symbolic name meaning all available interfaces
@@ -14,7 +15,7 @@ BUFFER_SIZE = 1024
 HOST_PW = '1234'
 USER_AUTH_TAG = 'UA'
 HOST_AUTH_TAG = 'HA'
-MSG_DELIMITER = '#'
+MSG_DELIMITER = "#"
 DECODING_CODE = 'utf-8'
 
 CFG_PATH = "ServerCfg.json"
@@ -27,29 +28,29 @@ server_running = True
 # Main Socket Server
 Server = None
 Clients = []
+TCP_Functions = []
 
-def load_cfg():
-    global BUFFER_SIZE, HOST_PW, USER_AUTH_TAG, HOST_AUTH_TAG, MSG_DELIMITER, DECODING_CODE, CFG_PATH
-    try:
-        json_data = open(CFG_PATH).read()
-        data = json.loads(json_data)
 
-        BUFFER_SIZE = int(data['BUFFER_SIZE'])
-        HOST_PW = data['HOST_PW']
-        USER_AUTH_TAG = data['USER_AUTH_TAG']
-        HOST_AUTH_TAG = data['HOST_AUTH_TAG']
-        MSG_DELIMITER = data['MSG_DELIMITER']
-        DECODING_CODE = data['DECODING_CODE']
-
-    except:
-        break
+        
 
 
 def setup():
-    load_cfg()
-    Functions.init_DB()
+    init_functions()
+    CMD = 'DELETE FROM USERS'
+    VALS = ()
+    DBInterface.exec_command(CMD, VALS)
     while server_running:
         server()
+
+def format_data(data):
+    global DECODING_CODE
+    data = data.decode(DECODING_CODE) 
+    data = decrypt_data(data)
+    data_array = data.split(MSG_DELIMITER)
+    return data_array
+
+def decrypt_data(data):
+    return data
 
 def open_socket():
     for res in socket.getaddrinfo(HOST, PORT, socket.AF_UNSPEC,
@@ -92,17 +93,63 @@ def server():
     while listening:
         data = conn.recv(BUFFER_SIZE)   # receiving Data, max size in BUFFER_SIZE
         if not data: break              # connection closed, no data received
-        handle_data(data)               # pass to next function
+        res = handle_data(data)         # pass to next function
+
+        if not res is None:
+            if isinstance(res,list):
+                for msg in res:
+                    b_msg = str.encode(msg)
+                    conn.send(b_msg)
+            else:
+                b_msg = str.encode(res)
+                conn.send(b_msg)
 
     conn.close()                        # Transmission complete
 
 def handle_data(data):
-    print(data)
+    global TCP_Functions
+    data_arr = format_data(data)
+    res = None
+
+    for func in TCP_Functions:
+        ident = func.get_ident()
+        if data_arr[0] == ident:
+            data_arr.remove(ident)
+            res = func.run(data_arr)
+            break
+
+    if not res is None:
+        return res
+
+    
+
+def init_functions():
+    global TCP_Functions
+
+    start = False                       # If True, Instances are created in next Loop
+    firstFunction = 'TCP_function'      # Wont be used, starting with the next class 
+
+    # iterate over all Functions in Module Function
+    for name, clss in Functions.__dict__.items():
+
+        if start:
+
+            # If Flag is set, create instance
+            module = __import__('Functions')
+            class_ = getattr(module, name)
+            instance = class_()
+
+            # Append to List
+            TCP_Functions.append(instance)
+
+        if name == firstFunction:
+
+            # Add instances starting next loop
+            start = True
 
 
 
-
-
+setup()
 
 
 

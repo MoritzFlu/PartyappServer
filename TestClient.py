@@ -2,7 +2,7 @@ import socket
 import time
 
 TCP_IP = '10.0.255.36'
-TCP_PORT = 9778
+TCP_PORT = 50007
 
 BUFFER_SIZE = 1024
 
@@ -13,17 +13,20 @@ counter = 0
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((TCP_IP, TCP_PORT))
 
-MESSAG = b'HA#1234'
+MESSAG = b'UA#AC:AD:AC:AD:AD:CD'
 s.send(MESSAG)
+data = s.recv(1024)
 
-while running:
+print(data)
 
-    
-    
-    print("Sending: {}".format(MESSAG))
-    s.send(b'aaaaaaaabbbb')
-    time.sleep(2)
-    counter += 1
+MESSAG = b'HA#1231#AC:ED:AC:AD:AD:CD'
+s.send(MESSAG)
+data = s.recv(1024)
 
-    if counter > 20:
-        running = False
+print(data)
+
+MESSAG = b'UA#AC:AD:AC:AD:AD:FD'
+s.send(MESSAG)
+data = s.recv(1024)
+
+print(data)

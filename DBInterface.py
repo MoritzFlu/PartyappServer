@@ -13,6 +13,7 @@ def exec_command(cmd, vals):
 
     DBUser = 'DBInterface'
     DBPW = '1231'
+
     DBLink = mariadb.connect(user=DBUser, password=DBPW, database='partyapp') # connect to DB
     DBCursor = DBLink.cursor()  # create cursor for commands
     
@@ -30,8 +31,13 @@ def exec_command(cmd, vals):
 
 def get_user(ID):
     CMD = 'Select * from Users where ID = %s'
-    Result = exec_command()
-    return Result
+    VALS = (ID,)
+    Result = exec_command(CMD, VALS)
+
+    if Result is None or Result[0] is None:
+        return 0
+
+    return Result[0]
         
 def new_user(MAC, isHost):          # tries to create new User in DB, if exits returns that ID
                                     # else, creates new Entry and returns new ID
