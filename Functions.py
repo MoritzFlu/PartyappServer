@@ -38,19 +38,21 @@ class TCP_HostAuthentication(TCP_function):
     hostPW = '1231'
     
     def run(self,data):
+        # More fields than necessary DOTO: handling
         if len(data) != self.fields:
             i = 1
-        
+        # Check if host pw correct
         if data[0] == self.hostPW:
+            # Add Host
             ID = DBInterface.new_user(data[1], True)
         else:
             ID = 0
 
+        # Return Message
         MSG = '{}#{}'.format(self.answerIdent, ID)
         return MSG
 
 class TCP_UserAuthentication(TCP_function):
-
     ident = 'UA'
     answerIdent = 'AA'
 
@@ -58,17 +60,21 @@ class TCP_UserAuthentication(TCP_function):
     hostNeeded = False
 
     def run(self,data):
-
+        
+        # More fields than necessary DOTO: handling
         if len(data) != self.fields:
             i = 1
 
+        # Check if Host exists
         Host = DBInterface.get_user(1)
 
         if Host == 1:
+            # Add Host to Users
             ID = DBInterface.new_user(data[0], False)
         else:
+            # No Host, return Error
             ID = 0
         
+        # Return Message
         MSG = '{}#{}'.format(self.answerIdent, ID)
-
         return MSG
