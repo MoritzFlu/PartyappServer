@@ -5,6 +5,7 @@ import DBInterface
 # Server Data
 HOST = None               # Symbolic name meaning all available interfaces
 PORT = 50007              # Arbitrary non-privileged port
+server_running = True
 
 # Constants
 BUFFER_SIZE = 1024        # MAx size of one message

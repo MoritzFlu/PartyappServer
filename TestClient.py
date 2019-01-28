@@ -22,7 +22,6 @@ print(data)
 s.close()
 
 for x in range(100):
-    time.sleep(0.5)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
     MESSAG = ''.join(random.choices(string.ascii_uppercase + string.digits, k=17))
