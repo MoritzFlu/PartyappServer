@@ -8,25 +8,31 @@ class DBInterface(ABC):
         pass
 
     @abstractmethod
-    def get_user(ID):
+    def get_user(self, ID):
         pass
 
     @abstractmethod
-    def new_user(MAC):
+    def new_user(self, MAC):
+        pass
+
+    @abstractmethod
+    def get_playlist():
         pass
 
 
 
-class Maria_Interface(DB_Interface):
-    def exec_command(cmd, vals):
+class Maria_Interface(DBInterface):
+    def exec_command(self, cmd, vals):
 
         # Structure:
         # cmd contains raw command with %s for vars
         # vals contains vars to insert, format: (var1, var2,)
+        
         # Example:
         # CMD = 'SELECT * FROM USERS WHERE ID = %s AND MAC like %s'
         # VALS = (ID,MAC,)
         # exec_command(CMD, VALS)
+
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # ! NO QUOTATION MARKS INSIDE OF THE COMMAND    !
         # ! THOSE ARE PLACE AUTOMATICALLY               !
@@ -40,9 +46,7 @@ class Maria_Interface(DB_Interface):
         
         myres = None
         DBCursor.execute(cmd, vals) # execute cmd
-
-        for result in DBCursor:
-            myres = result  # get result
+        myres = DBCursor.fetchall()   
 
         DBLink.commit() # save changes
         DBLink.close() # close connection
@@ -50,7 +54,7 @@ class Maria_Interface(DB_Interface):
         return myres
 
 
-    def get_user(ID):
+    def get_user(self, ID):
         CMD = 'Select * from Users where ID = %s'
         VALS = (ID,)
         Result = exec_command(CMD, VALS)
@@ -60,7 +64,7 @@ class Maria_Interface(DB_Interface):
 
         return Result[0]
             
-    def new_user(MAC):          # tries to create new User in DB, if exits returns that ID
+    def new_user(self, MAC):          # tries to create new User in DB, if exits returns that ID
                                         # else, creates new Entry and returns new ID
 
         CMD = 'Select ID from Users Where MAC = %s'
@@ -87,4 +91,12 @@ class Maria_Interface(DB_Interface):
             myID = Result[0]
 
         return myID   # return ID to Server
+
+    def get_playlist(self):
+
+        CMD = 'Select * From Playlist order by CurPoints asc'
+        VALS = ()
+        Result = self.exec_command(CMD, VALS)
+
+        return Result
 

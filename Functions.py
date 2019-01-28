@@ -14,7 +14,7 @@ class TCP_function(ABC):
     hostNeeded = False          # Only executable by Host
     DB = None
 
-    def __init__():             # Create DB Connection
+    def __init__(self):             # Create DB Connection
         self.DB = Maria_Interface()
 
     @abc.abstractmethod
@@ -96,5 +96,23 @@ class TCP_FetchPlaylist(TCP_function):
     def run(self, data, ID):
        # More fields than necessary DOTO: handling
         if len(data) != self.fields:
-            i = 1 
+            i = 1
+        MSG = []
+        
+        if data[0] == 1:
+            Songs = self.DB.get_playlist()
+
+            
+            MSG.append(self.answerIdentSignal + '#1')
+
+            # 0: ID
+            # 1: CurPoints
+            # 2: Name
+            # 3: Interpreter
+
+            for s in Songs:
+                MSG.append('{}#{}#{}#{}#{}'.format(self.answerIdentEntry, s[0], s[1], s[2], s[3]))
+            MSG.append(self.answerIdentSignal + '#0')
+
+        return MSG
 
