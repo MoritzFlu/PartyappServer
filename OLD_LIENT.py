@@ -30,12 +30,15 @@ class Client(abc.ABC):
 
     def run(self):
         while self.alive:
-            data = self.mySocket.recv(self.BUFFER_SIZE)
+
+            try:
+                data = self.mySocket.recv(self.BUFFER_SIZE)
+            except:
+                data = False
 
             # check if connection alive
             if not data:
                 self.alive = False
-                print("Im ded!")
                 break
 
             new_data = self.decryptData(data)

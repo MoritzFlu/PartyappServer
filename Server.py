@@ -2,19 +2,23 @@ import socket
 import threading
 from Client import User, Host, UserThread, HostThread
 import json
+import abc
+import Functions
 
 # Server Data
-MyIP = ''
-MyPort = 9778
+HOST = None               # Symbolic name meaning all available interfaces
+PORT = 50007              # Arbitrary non-privileged port
 
 # Constants
 BUFFER_SIZE = 1024
 HOST_PW = '1234'
-MAX_CONN = 10
 USER_AUTH_TAG = 'UA'
 HOST_AUTH_TAG = 'HA'
 MSG_DELIMITER = '#'
 DECODING_CODE = 'utf-8'
+
+CFG_PATH = "ServerCfg.json"
+KNOWN_PATH = "knownClients.json"
 
 # System Management Vars
 host_found = False
@@ -24,53 +28,81 @@ server_running = True
 Server = None
 Clients = []
 
+def load_cfg():
+    global BUFFER_SIZE, HOST_PW, USER_AUTH_TAG, HOST_AUTH_TAG, MSG_DELIMITER, DECODING_CODE, CFG_PATH
+    try:
+        json_data = open(CFG_PATH).read()
+        data = json.loads(json_data)
+
+        BUFFER_SIZE = int(data['BUFFER_SIZE'])
+        HOST_PW = data['HOST_PW']
+        USER_AUTH_TAG = data['USER_AUTH_TAG']
+        HOST_AUTH_TAG = data['HOST_AUTH_TAG']
+        MSG_DELIMITER = data['MSG_DELIMITER']
+        DECODING_CODE = data['DECODING_CODE']
+
+    except:
+        break
 
 
 def setup():
-    global Server, MyIP, MyPort, MAX_CONN
-    MyIP = socket.gethostbyname(socket.gethostname())
-    Server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    Conndata = (MyIP, MyPort)
+    load_cfg()
+    Functions.init_DB()
+    while server_running:
+        server()
 
-    # Bind Socket to Port
-    Server.bind(Conndata)
+def open_socket():
+    for res in socket.getaddrinfo(HOST, PORT, socket.AF_UNSPEC,
+                              socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
+        af, socktype, proto, canonname, sa = res
+        print(af, socktype, proto, canonname, sa)
 
-    # Listen for new connections
-    Server.listen(MAX_CONN)
-    print("Listening on {}:{}".format(MyIP, MyPort))
+        try:
+            s = socket.socket(af, socktype, proto)
+        except socket.error as msg:
+            s = None
+            continue
 
-def mainLoop():
-    global Server, Clients
+        try:
+            s.bind(sa)
+            print(sa)
+            s.listen(1)
 
-    newcl, addr = Server.accept()
-    acceptConnection(newcl, addr)
+        except socket.error as msg:
+            s.close()
+            s = None
+            continue
+        break
+
+    return s
+
+def server():
+    global BUFFER_SIZE, HOST, PORT
     
+    s = open_socket()                   # Wait for conenction, return connection
+
+    if s is None:                       # If connection already closed
+        print('could not open socket')
+
+    conn, addr = s.accept()             # conn is object, addr is array with ip + port
+    print('Connected by', addr)
+
+    listening = True                    # flag to allow terminating on next loop
+
+    while listening:
+        data = conn.recv(BUFFER_SIZE)   # receiving Data, max size in BUFFER_SIZE
+        if not data: break              # connection closed, no data received
+        handle_data(data)               # pass to next function
+
+    conn.close()                        # Transmission complete
+
+def handle_data(data):
+    print(data)
 
 
-def acceptConnection(newcl, addr):
-    global Clients, host_found, USER_AUTH_TAG, HOST_PW, HOST_AUTH_TAG
-    if host_found:
-        split_data = decompData(newcl)
-        if split_data[0] == USER_AUTH_TAG:
-            new_client = UserThread(addr[0], split_data[1], newcl)
-            Clients.append(new_client)
-            new_client.start()
-    else:
-        split_data = decompData(newcl)
-        if split_data[0] == HOST_AUTH_TAG and split_data[1] == HOST_PW:
-            new_client = HostThread(addr[0], split_data[1], newcl)
-            Clients.append(new_client)
-            new_client.start()
 
-def decompData(newcl):
-    global BUFFER_SIZE, DECODING_CODE, MSG_DELIMITER
-    decData = newcl.recv(BUFFER_SIZE).decode(DECODING_CODE)
-    arrData = decData.split(MSG_DELIMITER)
-    return arrData
 
-def startThread():
-    i = 0
 
-setup()
-while server_running:
-    mainLoop()
+
+
+

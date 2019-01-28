@@ -1,0 +1,9 @@
+{
+    "BUFFER_SIZE":"1024",
+    "HOST_PW":"1234",
+    "MAX_CONN":10,
+    "USER_AUTH_TAG":"UA",
+    "HOST_AUTH_TAG":"HA",
+    "MSG_DELIMITER":"#",
+    "DECODING_CODE":"utf-8"
+}
