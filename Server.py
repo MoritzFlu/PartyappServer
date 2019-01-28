@@ -138,7 +138,9 @@ def handle_data(data):
         if data_arr[0] == ident:
             #if ident = Function ident -> Remove ident from arr and Exec Function
             data_arr.remove(ident)
-            res = func.run(data_arr)
+            ID = data_arr[0]
+            data_arr.remove(ID)
+            res = func.run(data_arr, ID)
             break
 
     # if Function returns Data, pass it up
