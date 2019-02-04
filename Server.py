@@ -1,9 +1,9 @@
 import socket
 import Functions
-import DBInterface
+from DBInterface import *
 
 # Server Data
-HOST = None               # Symbolic name meaning all available interfaces
+HOST = '0.0.0.0'              # Symbolic name meaning all available interfaces
 PORT = 50007              # Arbitrary non-privileged port
 server_running = True
 
@@ -29,11 +29,13 @@ def setup():
     # Empty Users Stored in DB
     CMD = 'DELETE FROM USERS'
     VALS = ()
-    DBInterface.exec_command(CMD, VALS)
+    DB = Maria_Interface()
+    DB.exec_command(CMD, VALS)
 
     # Main Loop
+    s = open_socket()   
     while server_running:
-        server()
+        server(s)
 
 # Take Raw Data, Return Array of Strings
 def format_data(data):
@@ -60,6 +62,7 @@ def open_socket():
         af, socktype, proto, canonname, sa = res
         try:
             #create socket
+            print(res)
             s = socket.socket(af, socktype, proto)
         except socket.error as msg:
             # couldnt bind socket, abort
@@ -69,7 +72,7 @@ def open_socket():
         try:
             #bind to port and await connection
             s.bind(sa)
-            s.listen(1)
+            s.listen(0)
 
         except socket.error as msg:
             #if error close
@@ -80,12 +83,10 @@ def open_socket():
 
     return s
 
-# Main Server, receving and sending data
-def server():
-    global BUFFER_SIZE, HOST, PORT
 
-    # Wait for conenction, return connection
-    s = open_socket()                  
+# Main Server, receving and sending data
+def server(s):
+    global BUFFER_SIZE, HOST, PORT
 
     # If connection already closed
     if s is None:                       
@@ -115,7 +116,7 @@ def server():
                 # res is list
                 for msg in res:
                     b_msg = str.encode(msg)
-                    conn.send(b_msg)
+                    conn.sendall(b_msg)
             else:
                 #res is string
                 b_msg = str.encode(res)
@@ -123,6 +124,10 @@ def server():
 
     # Transmission complete
     conn.close()                        
+
+def fill_to_buffer(data):
+    global BUFFER_SIZE
+    i = 1
 
 # Calls correct function based on received Data
 def handle_data(data):
@@ -138,9 +143,7 @@ def handle_data(data):
         if data_arr[0] == ident:
             #if ident = Function ident -> Remove ident from arr and Exec Function
             data_arr.remove(ident)
-            ID = data_arr[0]
-            data_arr.remove(ID)
-            res = func.run(data_arr, ID)
+            res = func.run(data_arr)
             break
 
     # if Function returns Data, pass it up
@@ -159,6 +162,7 @@ def init_functions():
     start = False                       # If True, Instances are created in next Loop
     firstFunction = 'TCP_function'      # Wont be used, starting with the next class 
 
+    DB = init_DB()
     # iterate over all Functions in Module Function
     for name, clss in Functions.__dict__.items():
 
@@ -167,7 +171,7 @@ def init_functions():
             # If Flag is set, create instance
             module = __import__('Functions')
             class_ = getattr(module, name)
-            instance = class_()
+            instance = class_(DB)
 
             # Append to List
             TCP_Functions.append(instance)
@@ -177,7 +181,9 @@ def init_functions():
             # Add instances starting next loop
             start = True
 
-
+def init_DB():
+    DB = Maria_Interface()
+    return DB
 
 setup()
 

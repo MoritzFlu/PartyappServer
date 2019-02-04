@@ -22,6 +22,14 @@ class DBInterface(ABC):
 
 
 class Maria_Interface(DBInterface):
+    DBUser = 'DBInterface'
+    DBPW = '1231'
+
+    DBLink = None
+
+    def __init__(self):
+        self.DBLink = mariadb.connect(user=self.DBUser, password=self.DBPW, database='partyapp') # connect to DB
+
     def exec_command(self, cmd, vals):
 
         # Structure:
@@ -38,18 +46,25 @@ class Maria_Interface(DBInterface):
         # ! THOSE ARE PLACE AUTOMATICALLY               !
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        DBUser = 'DBInterface'
-        DBPW = '1231'
-
-        DBLink = mariadb.connect(user=DBUser, password=DBPW, database='partyapp') # connect to DB
-        DBCursor = DBLink.cursor()  # create cursor for commands
         
-        myres = None
-        DBCursor.execute(cmd, vals) # execute cmd
-        myres = DBCursor.fetchall()   
+        myres = []
+        
+        DBCursor = self.DBLink.cursor()  # create cursor for commands
+        DBCursor._buffered = True
+         
+        try:
+            DBCursor.execute(cmd, vals) # execute cmd  
+            for row in DBCursor:
+                print(row)
+                myres.append(row)
+        except: 
+            myres = []
+     
 
-        DBLink.commit() # save changes
-        DBLink.close() # close connection
+
+        self.DBLink.commit() # save changes
+        DBCursor.close()
+        DBCursor = None
 
         return myres
 
@@ -57,9 +72,9 @@ class Maria_Interface(DBInterface):
     def get_user(self, ID):
         CMD = 'Select * from Users where ID = %s'
         VALS = (ID,)
-        Result = exec_command(CMD, VALS)
+        Result = self.exec_command(CMD, VALS)
 
-        if Result is None or Result[0] is None:
+        if Result == []:
             return 0
 
         return Result[0]
@@ -69,32 +84,32 @@ class Maria_Interface(DBInterface):
 
         CMD = 'Select ID from Users Where MAC = %s'
         VALS = (MAC,)
-        Result = exec_command(CMD, VALS)
+        Result = self.exec_command(CMD, VALS)
         isHost = False
 
-        if Result is None or Result[0] is None:
+        if Result == []:
             CMD = 'Select max(ID) from Users'
             VALS = ()
-            Result = exec_command(CMD, VALS)                              # get highest ID
+            Result = self.exec_command(CMD, VALS)                              # get highest ID
         
-            if Result[0] is None:
+            if Result == [] or Result[0][0] == None:
                 myID = 1
                 isHost = True
             else:
-                myID = Result[0] + 1
+                myID = Result[0][0] + 1
 
             CMD = 'Insert Into Users(ID, MAC, isHost) values (%s, %s, %s)'  # add new user
             VALS = (myID, MAC, isHost,)
-            Result = exec_command(CMD, VALS)
+            Result =self. exec_command(CMD, VALS)
 
         else:
-            myID = Result[0]
+            myID = Result[0][0]
 
         return myID   # return ID to Server
 
     def get_playlist(self):
 
-        CMD = 'Select * From Playlist order by CurPoints asc'
+        CMD = 'Select * from playlist order by curpoints asc'
         VALS = ()
         Result = self.exec_command(CMD, VALS)
 

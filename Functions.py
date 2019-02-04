@@ -14,11 +14,11 @@ class TCP_function(ABC):
     hostNeeded = False          # Only executable by Host
     DB = None
 
-    def __init__(self):             # Create DB Connection
-        self.DB = Maria_Interface()
+    def __init__(self, DB):             # Create DB Connection
+        self.DB = DB
 
     @abc.abstractmethod
-    def run(self,raw_data,ID):          # initiate data handling
+    def run(self,raw_data):          # initiate data handling
         pass
 
     def get_ident(self):            # return ident for comparison
@@ -43,14 +43,14 @@ class TCP_HostAuthentication(TCP_function):
     hostNeeded = False
     hostPW = '1231'
     
-    def run(self,data,ID):
+    def run(self,data):
         # More fields than necessary DOTO: handling
         if len(data) != self.fields:
             i = 1
         # Check if host pw correct
         if data[0] == self.hostPW:
             # Add Host
-            ID = DBInterface.new_user(data[1])
+            ID = self.DB.new_user(data[1])
         else:
             ID = 0
 
@@ -65,7 +65,7 @@ class TCP_UserAuthentication(TCP_function):
     fields = 1          # MAC
     hostNeeded = False
 
-    def run(self,data,ID):
+    def run(self,data):
         
         # More fields than necessary DOTO: handling
         if len(data) != self.fields:
@@ -93,16 +93,14 @@ class TCP_FetchPlaylist(TCP_function):
     fields = 1
     hostNeeded = False
 
-    def run(self, data, ID):
+    def run(self, data):
        # More fields than necessary DOTO: handling
         if len(data) != self.fields:
             i = 1
         MSG = []
         
-        if data[0] == 1:
+        if data[0] == '1':
             Songs = self.DB.get_playlist()
-
-            
             MSG.append(self.answerIdentSignal + '#1')
 
             # 0: ID
@@ -111,7 +109,7 @@ class TCP_FetchPlaylist(TCP_function):
             # 3: Interpreter
 
             for s in Songs:
-                MSG.append('{}#{}#{}#{}#{}'.format(self.answerIdentEntry, s[0], s[1], s[2], s[3]))
+                MSG.append('{}#{}#{}#{}#{}'.format(self.answerIdentEntry, s[0], s[1], s[2], s[3]) + "\n")
             MSG.append(self.answerIdentSignal + '#0')
 
         return MSG
