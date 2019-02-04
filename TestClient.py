@@ -33,18 +33,13 @@ print(data)
 s.close()
 s = None
 
-time.sleep(1)
-
-s = connect()
-MESSAG = b'PR#1'
-s.send(MESSAG)
-
-receving = True
-while receving:
-    data_raw = s.recv(1024)
-    print(data_raw + b"\n")
-    data = str.split('#')
-    if data[0] == 'PS' and data[1] == '0':
-        receving = False
-
-s.close()
+for x in range(0, 100):
+    s = connect()
+    MSG = 'UA#' + str(x)
+    MSG = MSG.encode()
+    s.send(MSG)
+    data = s.recv(1024)
+    print(data)
+    s.close()
+    s = None
+    

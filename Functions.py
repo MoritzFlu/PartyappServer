@@ -50,7 +50,8 @@ class TCP_HostAuthentication(TCP_function):
         # Check if host pw correct
         if data[0] == self.hostPW:
             # Add Host
-            ID = self.DB.new_user(data[1])
+            Mac = data[1]
+            ID = self.DB.new_user(Mac)
         else:
             ID = 0
 
@@ -106,11 +107,50 @@ class TCP_FetchPlaylist(TCP_function):
             # 0: ID
             # 1: CurPoints
             # 2: Name
-            # 3: Interpreter
+            # 3: Interpret
 
             for s in Songs:
-                MSG.append('{}#{}#{}#{}#{}'.format(self.answerIdentEntry, s[0], s[1], s[2], s[3]) + "\n")
+                MSG.append('{}#{}#{}#{}#{}'.format(self.answerIdentEntry, s['ID'], s['CurPoints'], s['Name'], s['Interpret']) + "\n")
             MSG.append(self.answerIdentSignal + '#0')
 
         return MSG
 
+class TCP_SearchSong(TCP_function):
+    ident = 'SS'
+    answerIdentSignal = 'ST'
+    answerIdentEntry = 'SE'
+    fields = 2      #Name, Interpret
+    hostNeeded = False
+
+
+    def run(self, data):
+        if len(data) != self.fields:
+            i = 1
+
+        Name = ""
+        Interpret = ""
+
+        if data[0] == "*":
+            Name = ""
+        elif data[0] == "_":
+            Name = None
+        else:
+            Name = data[0]
+
+        if data[1] == "*":
+            Interpret = ""
+        elif data[1] == "_":
+            Interpret = None
+        else:
+            Interpret = data[1]
+        
+        Songs = self.DB.search_song(Name, Interpret)
+        MSG = []
+        MSG.append(self.answerIdentSignal + '#1')
+        for s in Songs:
+            # 0: ID
+            # 1: Name
+            # 2: Interpreter
+            MSG.append('{}#{}#{}#{}'.format(self.answerIdentEntry, s['ID'], s['Name'], s['Interpret']) + "\n")
+        MSG.append(self.answerIdentSignal + '#0')
+        return MSG

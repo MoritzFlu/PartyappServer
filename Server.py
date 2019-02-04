@@ -26,12 +26,6 @@ TCP_Functions = []
 def setup(): 
     init_functions()
 
-    # Empty Users Stored in DB
-    CMD = 'DELETE FROM USERS'
-    VALS = ()
-    DB = Maria_Interface()
-    DB.exec_command(CMD, VALS)
-
     # Main Loop
     s = open_socket()   
     while server_running:
@@ -182,7 +176,7 @@ def init_functions():
             start = True
 
 def init_DB():
-    DB = Maria_Interface()
+    DB = TinyDB_Interface()
     return DB
 
 setup()

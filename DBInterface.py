@@ -1,9 +1,11 @@
 import mysql.connector as mariadb
+from tinydb import *
+
 from abc import ABC, abstractmethod
+import re
 
 class DBInterface(ABC):
 
-    @abstractmethod
     def exec_command(cmd, vals):
         pass
 
@@ -11,107 +13,85 @@ class DBInterface(ABC):
     def get_user(self, ID):
         pass
 
-    @abstractmethod
+    #@abstractmethod
     def new_user(self, MAC):
         pass
 
-    @abstractmethod
+    #@abstractmethod
     def get_playlist():
         pass
 
 
-
-class Maria_Interface(DBInterface):
-    DBUser = 'DBInterface'
-    DBPW = '1231'
-
-    DBLink = None
+class TinyDB_Interface(DBInterface):
+    UserDB = None
+    SongsDB = None
+    PlaylistDB = None
 
     def __init__(self):
-        self.DBLink = mariadb.connect(user=self.DBUser, password=self.DBPW, database='partyapp') # connect to DB
+        self.UserDB = TinyDB('DB/users.json')
+        self.UserDB.purge_tables()
+        self.SongsDB = TinyDB('DB/songs.json')
+        self.PlaylistDB = TinyDB('DB/playlist.json')
 
-    def exec_command(self, cmd, vals):
+    
 
-        # Structure:
-        # cmd contains raw command with %s for vars
-        # vals contains vars to insert, format: (var1, var2,)
-        
-        # Example:
-        # CMD = 'SELECT * FROM USERS WHERE ID = %s AND MAC like %s'
-        # VALS = (ID,MAC,)
-        # exec_command(CMD, VALS)
-
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # ! NO QUOTATION MARKS INSIDE OF THE COMMAND    !
-        # ! THOSE ARE PLACE AUTOMATICALLY               !
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-        
-        myres = []
-        
-        DBCursor = self.DBLink.cursor()  # create cursor for commands
-        DBCursor._buffered = True
-         
-        try:
-            DBCursor.execute(cmd, vals) # execute cmd  
-            for row in DBCursor:
-                print(row)
-                myres.append(row)
-        except: 
-            myres = []
-     
-
-
-        self.DBLink.commit() # save changes
-        DBCursor.close()
-        DBCursor = None
-
-        return myres
-
+    def insert_user(self, ID, MAC, Points, isHost=False):
+        self.UserDB.insert(
+            {'ID': ID, 'MAC': MAC, 'Points': Points, 'isHost': isHost})
 
     def get_user(self, ID):
-        CMD = 'Select * from Users where ID = %s'
-        VALS = (ID,)
-        Result = self.exec_command(CMD, VALS)
-
-        if Result == []:
+        res = self.UserDB.search(where('ID') == ID)
+        if res == []:
             return 0
+        return res[0]['ID']
 
-        return Result[0]
-            
-    def new_user(self, MAC):          # tries to create new User in DB, if exits returns that ID
-                                        # else, creates new Entry and returns new ID
-
-        CMD = 'Select ID from Users Where MAC = %s'
-        VALS = (MAC,)
-        Result = self.exec_command(CMD, VALS)
+    def new_user(self, MAC):
+        res = self.UserDB.search(where('MAC') == MAC)
         isHost = False
 
-        if Result == []:
-            CMD = 'Select max(ID) from Users'
-            VALS = ()
-            Result = self.exec_command(CMD, VALS)                              # get highest ID
-        
-            if Result == [] or Result[0][0] == None:
-                myID = 1
+        if res == []:
+            users = self.UserDB.all()
+            start = 1
+
+            for user in users:
+                if user['ID'] == start:
+                    start = user['ID'] + 1
+
+            myID = start
+            isHost = False
+            if myID == 1:
                 isHost = True
-            else:
-                myID = Result[0][0] + 1
 
-            CMD = 'Insert Into Users(ID, MAC, isHost) values (%s, %s, %s)'  # add new user
-            VALS = (myID, MAC, isHost,)
-            Result =self. exec_command(CMD, VALS)
-
+            # add new user
+            self.insert_user(myID, MAC, 0, isHost=isHost)
         else:
-            myID = Result[0][0]
+            myID = res[0]['ID']
 
         return myID   # return ID to Server
 
     def get_playlist(self):
+        res = self.PlaylistDB.all()
+        return res
 
-        CMD = 'Select * from playlist order by curpoints asc'
-        VALS = ()
-        Result = self.exec_command(CMD, VALS)
+    def search_song(self, Name, Interpret):
 
-        return Result
+        def wildcard_match(val, compVal):
+            if compVal in val:
+                return True
+            else:
+                return False
+
+
+        res = None
+        if Name != None and Interpret != None:
+            res = self.PlaylistDB.search(where('Name').test(wildcard_match,Name) & where('Interpret').test(wildcard_match,Interpret))
+        if Name != None and Interpret == None:
+            res = self.PlaylistDB.search(where('Name').test(wildcard_match,Name))
+        if Name == None and Interpret != None:
+            res = self.PlaylistDB.search(where('Interpret').test(wildcard_match,Interpret))
+        if Name == None and Interpret == None:
+            return None
+        return res
+
+  
 
