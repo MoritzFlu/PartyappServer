@@ -10,7 +10,7 @@ from abc import ABC
 # NEEDS TO BE FIRST FUNCTION!
 class TCP_function(ABC):
     ident = ''                  # Entry in first Field used to identify Function
-    fields = 0                  # Amount of Fields after first Field
+    fields = 0                  # Amount of Fields needed in data in for run
     hostNeeded = False          # Only executable by Host
     DB = None
 
@@ -154,3 +154,32 @@ class TCP_SearchSong(TCP_function):
             MSG.append('{}#{}#{}#{}'.format(self.answerIdentEntry, s['ID'], s['Name'], s['Interpret']) + "\n")
         MSG.append(self.answerIdentSignal + '#0')
         return MSG
+
+class TCP_RetrievePoints(TCP_function):
+
+    ident = 'RP'
+    fields = 1   # ID
+    answerIdent = 'PA'
+    hostNeeded = False
+
+    def run(self, data):
+        if len(data) != self.fields:
+            i = 1
+        res = self.DB.get_points(data[0])
+        MSG = self.answerIdent + '#' + str(res)
+        return MSG
+
+
+class TCP_AddSong(TCP_function):
+
+    ident = 'AS'
+    fields = 1
+    hostNeeded = False
+
+    def run(self, data):
+        if len(data) != self.fields:
+            i = 1
+        res = self.DB.add_song(data[0])
+
+        MSG = ""
+        return 

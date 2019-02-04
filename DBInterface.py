@@ -13,11 +13,11 @@ class DBInterface(ABC):
     def get_user(self, ID):
         pass
 
-    #@abstractmethod
+    @abstractmethod
     def new_user(self, MAC):
         pass
 
-    #@abstractmethod
+    @abstractmethod
     def get_playlist():
         pass
 
@@ -44,6 +44,13 @@ class TinyDB_Interface(DBInterface):
         if res == []:
             return 0
         return res[0]['ID']
+
+    def get_points(self, ID):
+        try:
+            res = self.UserDB.search(where('ID') == int(ID))
+            return res[0]['Points']
+        except:
+            return 0
 
     def new_user(self, MAC):
         res = self.UserDB.search(where('MAC') == MAC)
@@ -93,5 +100,18 @@ class TinyDB_Interface(DBInterface):
             return None
         return res
 
-  
+    def add_song(self, ID):
 
+        res = self.PlaylistDB.search(where('ID') == int(ID))
+        if res == []:
+            # Song not found, add to Playlist
+            newSong = self.SongsDB.search(where('ID') == int(ID))
+            song = {}
+            song['ID'] = newSong[0]['ID']
+            song['CurPoints'] = 0
+            self.PlaylistDB.insert(song)
+        else:
+            # Song Found, add 1 Point
+            self.PlaylistDB.update(increment('CurPoints'), where('ID') == int(ID))
+        return 1
+            

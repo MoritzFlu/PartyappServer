@@ -33,13 +33,35 @@ print(data)
 s.close()
 s = None
 
-for x in range(0, 100):
-    s = connect()
-    MSG = 'UA#' + str(x)
-    MSG = MSG.encode()
-    s.send(MSG)
-    data = s.recv(1024)
-    print(data)
-    s.close()
-    s = None
+s = connect()
+MESSAG = b'AS#1'
+s.send(MESSAG)
+data = s.recv(1024)
+print(data)
+s.close()
+s = None
+
+s = connect()
+MESSAG = b'AS#1'
+s.send(MESSAG)
+data = s.recv(1024)
+print(data)
+s.close()
+s = None
+
+s = connect()
+MESSAG = b'AS#2'
+s.send(MESSAG)
+data = s.recv(1024)
+print(data)
+s.close()
+s = None
+
+s = connect()
+MESSAG = b'AS#3'
+s.send(MESSAG)
+data = s.recv(1024)
+print(data)
+s.close()
+s = None
     
