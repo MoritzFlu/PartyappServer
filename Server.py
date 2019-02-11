@@ -1,3 +1,4 @@
+import importlib
 import socket
 import Functions
 from DBInterface import *
@@ -119,9 +120,6 @@ def server(s):
     # Transmission complete
     conn.close()                        
 
-def fill_to_buffer(data):
-    global BUFFER_SIZE
-    i = 1
 
 # Calls correct function based on received Data
 def handle_data(data):
@@ -165,10 +163,13 @@ def init_functions():
             # If Flag is set, create instance
             module = __import__('Functions')
             class_ = getattr(module, name)
-            instance = class_(DB)
-
-            # Append to List
-            TCP_Functions.append(instance)
+            try:
+                instance = class_(DB)
+                # Append to List
+                TCP_Functions.append(instance)
+                
+            except:
+                continue
 
         if name == firstFunction:
 
@@ -179,7 +180,9 @@ def init_DB():
     DB = TinyDB_Interface()
     return DB
 
-setup()
+
+if __name__ == '__main__':
+    setup()
 
 
 

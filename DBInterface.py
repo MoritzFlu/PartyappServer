@@ -78,9 +78,13 @@ class TinyDB_Interface(DBInterface):
 
     def get_playlist(self):
         res = self.PlaylistDB.all()
+        songs = []
+        for song in res:
+            entry = self.SongsDB.search(where('ID') == int(song['ID']))
+            songs.append(entry[0])
         return res
 
-    def search_song(self, Name, Interpret):
+    def search_song(self, searchVal):
 
         def wildcard_match(val, compVal):
             if compVal in val:
@@ -88,16 +92,11 @@ class TinyDB_Interface(DBInterface):
             else:
                 return False
 
+        res = self.SongsDB.search(
+            where('Interpret').test(wildcard_match,searchVal) |
+            where('Titel').test(wildcard_match, searchVal)
+        )
 
-        res = None
-        if Name != None and Interpret != None:
-            res = self.PlaylistDB.search(where('Name').test(wildcard_match,Name) & where('Interpret').test(wildcard_match,Interpret))
-        if Name != None and Interpret == None:
-            res = self.PlaylistDB.search(where('Name').test(wildcard_match,Name))
-        if Name == None and Interpret != None:
-            res = self.PlaylistDB.search(where('Interpret').test(wildcard_match,Interpret))
-        if Name == None and Interpret == None:
-            return None
         return res
 
     def add_song(self, ID):
@@ -114,4 +113,12 @@ class TinyDB_Interface(DBInterface):
             # Song Found, add 1 Point
             self.PlaylistDB.update(increment('CurPoints'), where('ID') == int(ID))
         return 1
+
+    def sub_points(self, ID, val):
+        try:
+            self.UserDB.update(subtract('Points', val), where('ID') == int(ID))
+            return 1
+        except:
+            return 0
+        
             

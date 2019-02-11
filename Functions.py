@@ -18,7 +18,7 @@ class TCP_function(ABC):
         self.DB = DB
 
     @abc.abstractmethod
-    def run(self,raw_data):          # initiate data handling
+    def run(self, raw_data):          # initiate data handling
         pass
 
     def get_ident(self):            # return ident for comparison
@@ -119,7 +119,7 @@ class TCP_SearchSong(TCP_function):
     ident = 'SS'
     answerIdentSignal = 'ST'
     answerIdentEntry = 'SE'
-    fields = 2      #Name, Interpret
+    fields = 1   # Search Value
     hostNeeded = False
 
 
@@ -127,24 +127,8 @@ class TCP_SearchSong(TCP_function):
         if len(data) != self.fields:
             i = 1
 
-        Name = ""
-        Interpret = ""
-
-        if data[0] == "*":
-            Name = ""
-        elif data[0] == "_":
-            Name = None
-        else:
-            Name = data[0]
-
-        if data[1] == "*":
-            Interpret = ""
-        elif data[1] == "_":
-            Interpret = None
-        else:
-            Interpret = data[1]
         
-        Songs = self.DB.search_song(Name, Interpret)
+        Songs = self.DB.search_song(data[0])
         MSG = []
         MSG.append(self.answerIdentSignal + '#1')
         for s in Songs:
@@ -173,13 +157,12 @@ class TCP_RetrievePoints(TCP_function):
 class TCP_AddSong(TCP_function):
 
     ident = 'AS'
-    fields = 1
+    fields = 2      # Client ID, Song ID
     hostNeeded = False
 
     def run(self, data):
         if len(data) != self.fields:
             i = 1
-        res = self.DB.add_song(data[0])
-
-        MSG = ""
+        res = self.DB.add_song(data[1])
+        res = self.DB.sub_points(data[0], 1)
         return 
