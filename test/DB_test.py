@@ -1,6 +1,9 @@
+import sys
+sys.path.append("..")
 
 import unittest
-import DBInterface
+from PartyAppServer.Main import DBInterface
+
 
 class DB_Test(unittest.TestCase):
 
@@ -14,12 +17,12 @@ class DB_Test(unittest.TestCase):
 
         # Vals
         ID = 1
-        MAC = 'TestIdent'
+        Uname = 'TestIdent'
         Points = 5
         isHost = True
 
         # Test
-        DB.insert_user(ID, MAC, Points, isHost=isHost)
+        DB.insert_user(ID, Uname, Points, isHost=isHost)
 
         # fetch Result
         Res = DB.get_user(ID)
@@ -33,11 +36,11 @@ class DB_Test(unittest.TestCase):
         DB.UserDB.purge_tables()
 
         # Vals
-        MAC = 'TestIdent'
+        Uname = 'TestIdent'
 
 
         # Test
-        ID = DB.new_user(MAC)
+        ID = DB.new_user(Uname)
 
         #fetch Result
         Res = DB.get_user(ID)

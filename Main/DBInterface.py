@@ -14,7 +14,7 @@ class DBInterface(ABC):
         pass
 
     @abstractmethod
-    def new_user(self, MAC):
+    def new_user(self, Uname):
         pass
 
     @abstractmethod
@@ -35,9 +35,9 @@ class TinyDB_Interface(DBInterface):
 
     
 
-    def insert_user(self, ID, MAC, Points, isHost=False):
+    def insert_user(self, ID, Uname, Points, isHost=False):
         self.UserDB.insert(
-            {'ID': ID, 'MAC': MAC, 'Points': Points, 'isHost': isHost})
+            {'ID': ID, 'Uname': Uname, 'Points': Points, 'isHost': isHost})
 
     def get_user(self, ID):
         res = self.UserDB.search(where('ID') == ID)
@@ -52,8 +52,8 @@ class TinyDB_Interface(DBInterface):
         except:
             return 0
 
-    def new_user(self, MAC):
-        res = self.UserDB.search(where('MAC') == MAC)
+    def new_user(self, Uname):
+        res = self.UserDB.search(where('Uname') == Uname)
         isHost = False
 
         if res == []:
@@ -70,7 +70,7 @@ class TinyDB_Interface(DBInterface):
                 isHost = True
 
             # add new user
-            self.insert_user(myID, MAC, 0, isHost=isHost)
+            self.insert_user(myID, Uname, 0, isHost=isHost)
         else:
             myID = res[0]['ID']
 
