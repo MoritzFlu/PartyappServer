@@ -39,7 +39,7 @@ class TCP_HostAuthentication(TCP_function):
     ident = 'HA'
     answerIdent = 'AA'
 
-    fields = 2                  # hostPW, Uname
+    fields = 2                  # hostPW, UUID
     hostNeeded = False
     hostPW = '1231'
     
@@ -50,8 +50,8 @@ class TCP_HostAuthentication(TCP_function):
         # Check if host pw correct
         if data[0] == self.hostPW:
             # Add Host
-            Uname = data[1]
-            ID = self.DB.new_user(Uname)
+            UUID = data[1]
+            ID = self.DB.new_user(UUID)
         else:
             ID = 0
 
@@ -63,7 +63,7 @@ class TCP_UserAuthentication(TCP_function):
     ident = 'UA'
     answerIdent = 'AA'
 
-    fields = 1          # Uname
+    fields = 1          # UUID
     hostNeeded = False
 
     def run(self,data):
