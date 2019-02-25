@@ -27,6 +27,11 @@ class TCP_function(ABC):
     def check_host(self):           # always activated, compares user to hostNeeded
         # DOTO: Check if User is Host
         return True
+    
+    def check_data(self, data):
+        if len(data) != self.fields:
+            i = 1
+            # Error Handling!
 
     
 
@@ -45,13 +50,12 @@ class TCP_HostAuthentication(TCP_function): # CHecked with new Interface
     
     def run(self,data):
         # More fields than necessary DOTO: handling
-        if len(data) != self.fields:
-            i = 1
+        self.check_data(data)
         # Check if host pw correct
         if data[0] == self.hostPW:
             # Add Host
             UUID = data[1]
-            ID = self.DB.UserDB.new_user(UUID)
+            ID = self.DB..new_user(UUID)
         else:
             ID = 0
 
@@ -69,15 +73,14 @@ class TCP_UserAuthentication(TCP_function):   # Checked with new
     def run(self,data):
         
         # More fields than necessary DOTO: handling
-        if len(data) != self.fields:
-            i = 1
+        self.check_data(data)
 
         # Check if Host exists
-        Host = self.DB.UserDB.get_user_viaID(1)
+        Host = self.DB.check_host()
 
         if Host == 1:
             # Add Host to Users
-            ID = self.DB.UserDB.new_user(data[0])
+            ID = self.DB.new_user(data[0])
         else:
             # No Host, return Error
             ID = 0
@@ -96,8 +99,7 @@ class TCP_FetchPlaylist(TCP_function):          # Checked with new
 
     def run(self, data):
        # More fields than necessary DOTO: handling
-        if len(data) != self.fields:
-            i = 1
+        self.check_data(data)
         MSG = []
         
         if data[0] == '1':
@@ -124,8 +126,7 @@ class TCP_SearchSong(TCP_function):         # Checked
 
 
     def run(self, data):
-        if len(data) != self.fields:
-            i = 1
+        self.check_data(data)
 
         
         Songs = self.DB.search(data[0], data[1])
@@ -147,12 +148,10 @@ class TCP_RetrievePoints(TCP_function):     # checked
     hostNeeded = False
 
     def run(self, data):
-        if len(data) != self.fields:
-            i = 1
-        res = self.DB.UserID.get_points_viaID(data[0])
+        self.check_data(data)
+        res = self.DB.get_points(data[0])
         MSG = self.answerIdent + '#' + str(res)
         return MSG
-
 
 class TCP_AddSong(TCP_function):            # checked
 
@@ -161,8 +160,35 @@ class TCP_AddSong(TCP_function):            # checked
     hostNeeded = False
 
     def run(self, data):
-        if len(data) != self.fields:
-            i = 1
+        self.check_data(data)
         res = self.DB.add_song(data[0], data[1])
-        res = self.DB.add_points_to_user(data[1], 1)
+        res = self.DB.add_points_to_user(data[1], -1)
         return 
+
+class TCP_AlterPoints(TCP_function):        # checked
+
+    ident = 'AP'
+    fields = 2    # Points, ClientID
+    hostNeeded = False
+
+    def run(self, data):
+        self.check_data(data)
+
+        try:
+            points = int(data[0])
+        except:
+            return
+        
+        self.DB.add_points_to_user(data[1], points)
+        return
+
+class TCP_VoteSong(TCP_function):           # checked
+
+    ident = 'VS'
+    fields = 1          # SongID, ClientID
+    hostNeeded = False
+
+    def run(self, data):
+        self.check_data(data)
+        self.DB.add_song(data[0], data[1])
+        return

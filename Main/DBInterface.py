@@ -72,7 +72,21 @@ class DBInterface():
     def add_points_to_user(self, UserID, Points):
         self.UserDB.add_points(UserID, Points)
 
-        
+    def new_user(self, UUID):
+        res = self.UserDB.new_user(UUID)
+        return res
+
+    def check_for_host(self):
+        res = self.UserDB.get_user_viaID(1)
+        if res == []:
+            return 0
+        else:
+            return 1
+
+    def get_points(self, ClientID):
+        res = self.UserDB.get_points_viaID(ClientID)
+        return res
+
 ########################################################################
 #                                                                      #
 #                   TinyDB Handlers                                    #
@@ -158,8 +172,8 @@ class TinyDB_SongHandler(SongDB_Handler):
 
     def fetch_using_artist_title(self, artist, title):
         res = self.DB.search(
-            where(self.Artist_STRING) == artist) &
-            where(self.TITLE_STRING)== title)
+            where(self.Artist_STRING) == artist &
+            where(self.TITLE_STRING) == title
         )
         return res
 
@@ -196,7 +210,7 @@ class TinyDB_UserHandler(UserDB_Handler):
             return ID
 
         else:
-            return res['ID']
+            return res[0]['ID']
     
     def insert_user(self, UUID, ID, isHost=False):
 
@@ -226,7 +240,7 @@ class TinyDB_UserHandler(UserDB_Handler):
             return res['Points']
 
     def get_user_viaUUID(self, UUID):
-        res = self.DB.search(where(self.UUID_FIELD) == int(UUID))
+        res = self.DB.search(where(self.UUID_FIELD) == UUID)
         return res
 
 class TinyDB_PlaylistHandler(PlaylistDB_Handler):
@@ -241,11 +255,11 @@ class TinyDB_PlaylistHandler(PlaylistDB_Handler):
         self.DB.update(add('Points', Points), ID == SongID)
 
     def add_song(self, Artist, Title):
-        contained = self.DB.search(where('Artits') == Artist) & where('Title') == Title)
+        contained = self.DB.search(where('Artits') == Artist & where('Title') == Title)
         if contained == []:
             ID = len(self.DB.all())
             song = {
-                'ID':ID
+                'ID':ID,
                 'Title':Title,
                 'Artist':Artist,
                 'Points':0
