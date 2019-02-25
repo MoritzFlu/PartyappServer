@@ -4,121 +4,260 @@ from tinydb import *
 from abc import ABC, abstractmethod
 import re
 
-class DBInterface(ABC):
 
-    def exec_command(cmd, vals):
-        pass
+###################     DB Handler Abstrac Classes      ###########################
 
-    @abstractmethod
-    def get_user(self, ID):
-        pass
+# DB that contains all playable songs
+class SongDB_Handler(ABC):
+    DB = None
 
     @abstractmethod
-    def new_user(self, UUID):
-        pass
-
-    @abstractmethod
-    def get_playlist():
-        pass
-
-
-class TinyDB_Interface(DBInterface):
-    UserDB = None
-    SongsDB = None
-    PlaylistDB = None
-
     def __init__(self):
-        self.UserDB = TinyDB('DB/users.json')
-        self.UserDB.purge_tables()
-        self.SongsDB = TinyDB('DB/songs.json')
-        self.PlaylistDB = TinyDB('DB/playlist.json')
+        pass
 
+# DB that contains active Playlist
+class PlaylistDB_Handler(ABC):
+    DB = None
+
+    @abstractmethod
+    def __init__(self):
+        pass
+
+# DB that contains list of all known users
+class UserDB_Handler(ABC):
+    DB = None
+
+    @abstractmethod
+    def __init__(self):
+        pass
+
+# DB that contains the recent search results for ID
+class SearchDB_Handler(ABC):
+    DB = None
+
+    @abstractmethod
+    def __init__(self):
+        pass
+########################################################################
+
+
+########################################################################
+#                                                                      #
+#                   Main Interface Implementation                      #
+#                                                                      #
+########################################################################
+
+class DBInterface():
+    SearchDB = None
+    PlaylistDB = None
+    SongDB = None
+    UserDB = None
+
+    def __init__(self, PlaylistDB, SongDB, UserDB, SearchDB):
+        self.PlaylistDB = PlaylistDB
+        self.SongDB = SongDB
+        self.UserDB = UserDB
+        self.SearchDB = SearchDB
+
+    def search(self, term, ID):
+        res = self.SongDB.search_song(term)
+        songs = self.SearchDB.insert_results(ID, res)
+        return songs
+
+    def add_song(self, SongID, ClientID):
+        song = self.SearchDB.get_song_viaID(SongID)
+        real_song = self.SongDB.fetch_using_artist_title(song['artist'],song['title'])
+        self.PlaylistDB.add_song(real_song['Artist'], real_song['Title'])
     
+    def add_points_to_user(self, UserID, Points):
+        self.UserDB.add_points(UserID, Points)
 
-    def insert_user(self, ID, UUID, Points, isHost=False):
-        self.UserDB.insert(
-            {'ID': ID, 'UUID': UUID, 'Points': Points, 'isHost': isHost})
+        
+########################################################################
+#                                                                      #
+#                   TinyDB Handlers                                    #
+#                                                                      #
+########################################################################
 
-    def get_user(self, ID):
-        res = self.UserDB.search(where('ID') == ID)
-        if res == []:
-            return 0
-        return res[0]['ID']
+class TinyDB_SearchHandler(SearchDB_Handler):
 
-    def get_points(self, ID):
-        try:
-            res = self.UserDB.search(where('ID') == int(ID))
-            return res[0]['Points']
-        except:
-            return 0
+    ID_STRING = 'ID'
+    TITLE_STRING = 'Title'
+    ARTIST_STRING = 'Artist'
+    PATH = 'DB/search.json'
 
-    def new_user(self, UUID):
-        res = self.UserDB.search(where('UUID') == UUID)
-        isHost = False
+    DB = None
 
-        if res == []:
-            users = self.UserDB.all()
-            start = 1
+    # Create DB handler
+    def __init__(self):
+        self.DB = TinyDB(self.PATH)
 
-            for user in users:
-                if user['ID'] == start:
-                    start = user['ID'] + 1
+    # called to insert entry
+    def insert_song(self, song):
+        self.DB.insert(song)
 
-            myID = start
-            isHost = False
-            if myID == 1:
-                isHost = True
+    # Will read list of songs, append them to DB and return with IDs
+    def insert_results(self, ClientID, Songs):
+        searched = self.DB.table(str(ClientID))
+        res = []
+        for song in Songs:
+            ID = len(searched.all())
+            new = {
+                ID_STRING:ID,
+                TITLE_STRING:song[TITLE_STRING],
+                ARTIST_STRING:song[ARTIST_STRING]
+            }
+            searched.insert(new)
+            res.append(new)
+        return res        
 
-            # add new user
-            self.insert_user(myID, UUID, 0, isHost=isHost)
-        else:
-            myID = res[0]['ID']
-
-        return myID   # return ID to Server
-
-    def get_playlist(self):
-        res = self.PlaylistDB.all()
-        songs = []
-        for song in res:
-            entry = self.SongsDB.search(where('ID') == int(song['ID']))
-            songs.append(entry[0])
+    def get_song_viaID(self, ID):
+        searched = self.DB.table(str(ClientID))
+        res = searched.search(where('ID') == ID)
         return res
 
-    def search_song(self, searchVal):
+    # Clears Table of Client identified by ClientID
+    def clear_table(self, ClientID):
+        self.DB.purge_table(str(ClientID))
 
+class TinyDB_SongHandler(SongDB_Handler):
+    
+    Artist_STRING = 'Artist'
+    TITLE_STRING = 'Title'
+    PATH = 'DB/songs.json'
+
+
+    def __init__(self):
+        self.DB = TinyDB(self.PATH)
+
+    def insert_song(self, Title, Artist, Path):
+        song = {
+            'Title':Title,
+            'Artist':Artist,
+            'Path':Path
+        }
+        self.DB.insert(song)
+
+    # Serach song via keyword, return results
+    def search_song(self, keyword):
+
+        # function used to test if keyword in Field
         def wildcard_match(val, compVal):
             if compVal in val:
                 return True
             else:
                 return False
 
-        res = self.SongsDB.search(
-            where('Interpret').test(wildcard_match,searchVal) |
-            where('Titel').test(wildcard_match, searchVal)
+        # search the DB
+        res = self.DB.search(
+            where(self.Artist_STRING).test(wildcard_match,keyword) |
+            where(self.TITLE_STRING).test(wildcard_match, keyword)
         )
 
         return res
 
-    def add_song(self, ID):
+    def fetch_using_artist_title(self, artist, title):
+        res = self.DB.search(
+            where(self.Artist_STRING) == artist) &
+            where(self.TITLE_STRING)== title)
+        )
+        return res
 
-        res = self.PlaylistDB.search(where('ID') == int(ID))
-        if res == []:
-            # Song not found, add to Playlist
-            newSong = self.SongsDB.search(where('ID') == int(ID))
-            song = {}
-            song['ID'] = newSong[0]['ID']
-            song['CurPoints'] = 0
-            self.PlaylistDB.insert(song)
-        else:
-            # Song Found, add 1 Point
-            self.PlaylistDB.update(increment('CurPoints'), where('ID') == int(ID))
-        return 1
+class TinyDB_UserHandler(UserDB_Handler):
 
-    def sub_points(self, ID, val):
-        try:
-            self.UserDB.update(subtract('Points', val), where('ID') == int(ID))
-            return 1
-        except:
-            return 0
+    PATH = 'DB/users.json'
+
+    # Field Structure in DB Table
+    UUID_FIELD = 'UUID'
+    ID_FIELD = 'ID'
+    POINTS_FIELD = 'Points'
+    HOST_Field = 'isHost'
+
+    DB = None
+
+    def __init__(self):
+        self.DB = TinyDB(self.PATH)
+
+    def new_user(self, UUID):
         
-            
+        # Check if user already in DB
+        res = None
+        res = self.get_user_viaUUID(UUID)
+
+        if res == []:
+            # get amount of entries = new ID
+            ID = len(self.DB.all()) + 1
+
+            if ID == 1:
+                # first User is Host
+                self.insert_user(UUID, ID, isHost=True)
+            else:  
+                self.insert_user(UUID, ID)
+            return ID
+
+        else:
+            return res['ID']
+    
+    def insert_user(self, UUID, ID, isHost=False):
+
+        USER = {
+            self.UUID_FIELD:UUID,
+            self.ID_FIELD:ID,
+            self.POINTS_FIELD:0,
+            self.HOST_Field:isHost
+        }
+        self.DB.insert(USER)
+
+    def add_points(self, UserID, Points):
+        self.DB.update(add('Points', Points), ID == UserID)
+
+    def get_user_viaID(self, ID):
+        res = self.DB.search(where(self.ID_FIELD) == int(ID))
+        if res == []:
+            return 0
+        else:
+            return res['ID']
+    
+    def get_points_viaID(self, ID):
+        res = self.DB.search(where(self.ID_FIELD) == int(ID))
+        if res == []:
+            return 0
+        else:
+            return res['Points']
+
+    def get_user_viaUUID(self, UUID):
+        res = self.DB.search(where(self.UUID_FIELD) == int(UUID))
+        return res
+
+class TinyDB_PlaylistHandler(PlaylistDB_Handler):
+    PATH = 'DB/playlist.json'
+
+    DB = None
+
+    def __init__(self):
+        self.DB = TinyDB(self.PATH)
+
+    def add_points(self, Points, SongID):
+        self.DB.update(add('Points', Points), ID == SongID)
+
+    def add_song(self, Artist, Title):
+        contained = self.DB.search(where('Artits') == Artist) & where('Title') == Title)
+        if contained == []:
+            ID = len(self.DB.all())
+            song = {
+                'ID':ID
+                'Title':Title,
+                'Artist':Artist,
+                'Points':0
+            }
+            self.DB.insert(song)
+        else:
+            self.add_points(1, contained['ID'])
+
+    def get_playlist(self):
+        res = self.DB.all()
+        return res
+
+
+
+

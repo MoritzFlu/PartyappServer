@@ -35,7 +35,7 @@ class TCP_function(ABC):
 # ! ADD FUNCTIONS STARTING HERE !
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-class TCP_HostAuthentication(TCP_function):
+class TCP_HostAuthentication(TCP_function): # CHecked with new Interface
     ident = 'HA'
     answerIdent = 'AA'
 
@@ -51,7 +51,7 @@ class TCP_HostAuthentication(TCP_function):
         if data[0] == self.hostPW:
             # Add Host
             UUID = data[1]
-            ID = self.DB.new_user(UUID)
+            ID = self.DB.UserDB.new_user(UUID)
         else:
             ID = 0
 
@@ -59,7 +59,7 @@ class TCP_HostAuthentication(TCP_function):
         MSG = '{}#{}'.format(self.answerIdent, ID)
         return MSG
 
-class TCP_UserAuthentication(TCP_function):
+class TCP_UserAuthentication(TCP_function):   # Checked with new 
     ident = 'UA'
     answerIdent = 'AA'
 
@@ -73,11 +73,11 @@ class TCP_UserAuthentication(TCP_function):
             i = 1
 
         # Check if Host exists
-        Host = self.DB.get_user(1)
+        Host = self.DB.UserDB.get_user_viaID(1)
 
         if Host == 1:
             # Add Host to Users
-            ID = self.DB.new_user(data[0])
+            ID = self.DB.UserDB.new_user(data[0])
         else:
             # No Host, return Error
             ID = 0
@@ -86,7 +86,7 @@ class TCP_UserAuthentication(TCP_function):
         MSG = '{}#{}'.format(self.answerIdent, ID)
         return MSG
 
-class TCP_FetchPlaylist(TCP_function):
+class TCP_FetchPlaylist(TCP_function):          # Checked with new
     ident = 'PR'
     answerIdentSignal = 'PS'
     answerIdentEntry = 'PE'
@@ -110,16 +110,16 @@ class TCP_FetchPlaylist(TCP_function):
             # 3: Interpret
 
             for s in Songs:
-                MSG.append('{}#{}#{}#{}#{}'.format(self.answerIdentEntry, s['ID'], s['CurPoints'], s['Name'], s['Interpret']) + "\n")
+                MSG.append('{}#{}#{}#{}#{}'.format(self.answerIdentEntry, s['ID'], s['Points'], s['Title'], s['Artist']) + "\n")
             MSG.append(self.answerIdentSignal + '#0')
 
         return MSG
 
-class TCP_SearchSong(TCP_function):
+class TCP_SearchSong(TCP_function):         # Checked
     ident = 'SS'
     answerIdentSignal = 'ST'
     answerIdentEntry = 'SE'
-    fields = 1   # Search Value
+    fields = 2   # Search Value, ClientID
     hostNeeded = False
 
 
@@ -128,18 +128,18 @@ class TCP_SearchSong(TCP_function):
             i = 1
 
         
-        Songs = self.DB.search_song(data[0])
+        Songs = self.DB.search(data[0], data[1])
         MSG = []
         MSG.append(self.answerIdentSignal + '#1')
         for s in Songs:
             # 0: ID
             # 1: Name
             # 2: Interpreter
-            MSG.append('{}#{}#{}#{}'.format(self.answerIdentEntry, s['ID'], s['Name'], s['Interpret']) + "\n")
+            MSG.append('{}#{}#{}#{}'.format(self.answerIdentEntry, s['ID'], s['Name'], s['Artist']) + "\n")
         MSG.append(self.answerIdentSignal + '#0')
         return MSG
 
-class TCP_RetrievePoints(TCP_function):
+class TCP_RetrievePoints(TCP_function):     # checked
 
     ident = 'RP'
     fields = 1   # ID
@@ -149,20 +149,20 @@ class TCP_RetrievePoints(TCP_function):
     def run(self, data):
         if len(data) != self.fields:
             i = 1
-        res = self.DB.get_points(data[0])
+        res = self.DB.UserID.get_points_viaID(data[0])
         MSG = self.answerIdent + '#' + str(res)
         return MSG
 
 
-class TCP_AddSong(TCP_function):
+class TCP_AddSong(TCP_function):            # checked
 
     ident = 'AS'
-    fields = 2      # Client ID, Song ID
+    fields = 2      # Song ID, ClientID
     hostNeeded = False
 
     def run(self, data):
         if len(data) != self.fields:
             i = 1
-        res = self.DB.add_song(data[1])
-        res = self.DB.sub_points(data[0], 1)
+        res = self.DB.add_song(data[0], data[1])
+        res = self.DB.add_points_to_user(data[1], 1)
         return 
