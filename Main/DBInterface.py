@@ -59,6 +59,11 @@ class DBInterface():
         self.UserDB = UserDB
         self.SearchDB = SearchDB
 
+    def clear(self):
+        self.PlaylistDB.DB.purge_tables()
+        self.UserDB.DB.purge_tables()
+        self.SearchDB.DB.purge_tables()
+
     def search(self, term, ID):
         res = self.SongDB.search_song(term)
         songs = self.SearchDB.insert_results(ID, res)
@@ -78,14 +83,21 @@ class DBInterface():
 
     def check_for_host(self):
         res = self.UserDB.get_user_viaID(1)
-        if res == []:
-            return 0
-        else:
-            return 1
+        return res
 
     def get_points(self, ClientID):
         res = self.UserDB.get_points_viaID(ClientID)
         return res
+
+    def add_points_to_all(self, points):
+        pass
+
+    def fetch_next_song(self):
+        res = self.PlaylistDB.get_next()
+        pathSong = self.SongDB.fetch_using_artist_title(res['Artist'], res['Title'])
+        
+        return pathSong['Path']
+
 
 ########################################################################
 #                                                                      #
@@ -117,9 +129,9 @@ class TinyDB_SearchHandler(SearchDB_Handler):
         for song in Songs:
             ID = len(searched.all())
             new = {
-                ID_STRING:ID,
-                TITLE_STRING:song[TITLE_STRING],
-                ARTIST_STRING:song[ARTIST_STRING]
+                self.ID_STRING:ID,
+                self.TITLE_STRING:song[self.TITLE_STRING],
+                self.ARTIST_STRING:song[self.ARTIST_STRING]
             }
             searched.insert(new)
             res.append(new)
@@ -210,7 +222,7 @@ class TinyDB_UserHandler(UserDB_Handler):
             return ID
 
         else:
-            return res[0]['ID']
+            return res['ID']
     
     def insert_user(self, UUID, ID, isHost=False):
 
@@ -230,18 +242,21 @@ class TinyDB_UserHandler(UserDB_Handler):
         if res == []:
             return 0
         else:
-            return res['ID']
+            return res[0]['ID']
     
     def get_points_viaID(self, ID):
         res = self.DB.search(where(self.ID_FIELD) == int(ID))
         if res == []:
             return 0
         else:
-            return res['Points']
+            return res[0]['Points']
 
     def get_user_viaUUID(self, UUID):
         res = self.DB.search(where(self.UUID_FIELD) == UUID)
-        return res
+        if res == []:
+            return []
+        else:
+            return res[0]
 
 class TinyDB_PlaylistHandler(PlaylistDB_Handler):
     PATH = 'DB/playlist.json'
@@ -271,6 +286,23 @@ class TinyDB_PlaylistHandler(PlaylistDB_Handler):
     def get_playlist(self):
         res = self.DB.all()
         return res
+
+    def get_next(self):
+        songs = self.DB.all()
+        maxP = 0
+
+        for s in songs:
+            if s['Points'] > maxP:
+                maxP = s['Points']
+        
+        res = self.DB.search(where('Points') == maxP)
+        song = res[0]
+        # delete song from database
+        self.DB.update(delete(), where('ID') == song['ID'])
+        return song
+
+
+
 
 
 

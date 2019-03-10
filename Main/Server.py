@@ -4,7 +4,7 @@ import Functions
 from DBInterface import *
 
 # Server Data
-HOST = '0.0.0.0'              # Symbolic name meaning all available interfaces
+HOST = '25.69.134.178'     # Symbolic name meaning all available interfaces
 PORT = 50007              # Arbitrary non-privileged port
 server_running = True
 
@@ -104,21 +104,22 @@ def server(s):
         # connection closed, no data received
         if not data: break             
         res = handle_data(data)         
-
+        print(res)
         if not res is None:
             # check if res is a list, otherwise you would loop over every letter
             if isinstance(res,list): 
                 # res is list
                 for msg in res:
-                    b_msg = str.encode(msg)
+                    b_msg = str.encode(msg + '\n')
                     conn.sendall(b_msg)
             else:
                 #res is string
                 b_msg = str.encode(res)
                 conn.send(b_msg)
 
-    # Transmission complete
-    conn.close()                        
+        # Transmission complete
+        conn.send(b'#ext#')
+        conn.close()                        
 
 
 # Calls correct function based on received Data
@@ -128,7 +129,7 @@ def handle_data(data):
     # Decode string, split into Array
     data_arr = format_data(data)
     res = None
-
+    print(data_arr)
     # Loop over functions
     for func in TCP_Functions:
         ident = func.get_ident()
@@ -155,6 +156,8 @@ def init_functions():
     firstFunction = 'TCP_function'      # Wont be used, starting with the next class 
 
     DB = init_DB()
+    DB.clear()
+
     # iterate over all Functions in Module Function
     for name, clss in Functions.__dict__.items():
 
@@ -177,7 +180,12 @@ def init_functions():
             start = True
 
 def init_DB():
-    DB = TinyDB_Interface()
+    DB = DBInterface(
+        TinyDB_PlaylistHandler(),
+        TinyDB_SongHandler(),
+        TinyDB_UserHandler(),
+        TinyDB_SearchHandler()
+    )
     return DB
 
 

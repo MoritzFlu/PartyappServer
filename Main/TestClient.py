@@ -30,38 +30,23 @@ MESSAG = b'HA#1231#AC:ED:AC:AD:AD:CD'
 s.send(MESSAG)
 data = s.recv(1024)
 print(data)
-s.close()
+
 s = None
 
 s = connect()
-MESSAG = b'AS#1'
-s.send(MESSAG)
-data = s.recv(1024)
-print(data)
-s.close()
-s = None
 
-s = connect()
-MESSAG = b'AS#1'
+MESSAG = b'SS#2#1'
 s.send(MESSAG)
-data = s.recv(1024)
-print(data)
-s.close()
-s = None
 
-s = connect()
-MESSAG = b'AS#2'
-s.send(MESSAG)
-data = s.recv(1024)
-print(data)
-s.close()
-s = None
+receiving = True
+totalData = ''
+while receiving:
+    try:
+        data = s.recv(1024)
+        data = data.decode("utf-8")
+        totalData = totalData + data
+    except:
+        receiving = False
+print(totalData)
 
-s = connect()
-MESSAG = b'AS#3'
-s.send(MESSAG)
-data = s.recv(1024)
-print(data)
-s.close()
-s = None
     
